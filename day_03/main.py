@@ -27,23 +27,16 @@ def filter(data, pos, ox=True):
     return data
 
 
-def part_two(data):
-    oxygen_generator_rating = []
-    c02_scrubber_rating = []
-    data_ox = data
-    data_c02 = data
+def calc_value(data, ox=True):
     for x in range(len(data[0])):
-        data_ox = filter(data_ox, x)
-        data_c02 = filter(data_c02, x, False)
+        data = filter(data, x, ox)
+        if len(data) == 1:
+            return data[0]
 
-        if len(oxygen_generator_rating) == 0 and len(data_ox) == 1:
-            oxygen_generator_rating = data_ox[0]
 
-        if len(c02_scrubber_rating) == 0 and len(data_c02) == 1:
-            c02_scrubber_rating = data_c02[0]
-
-    oxygen_generator_rating = int(''.join(oxygen_generator_rating), 2)
-    c02_scrubber_rating = int(''.join(c02_scrubber_rating), 2)
+def part_two(data):
+    oxygen_generator_rating = int(''.join(calc_value(data)), 2)
+    c02_scrubber_rating = int(''.join(calc_value(data, False)), 2)
 
     life_support_rating = oxygen_generator_rating * c02_scrubber_rating
     print(life_support_rating)
