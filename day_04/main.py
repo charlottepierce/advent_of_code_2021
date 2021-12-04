@@ -46,6 +46,18 @@ def part_one(all_grids, bingo_calls):
     return "Aw shit."
 
 
+def part_two(all_grids, bingo_calls):
+    for num in bingo_calls:
+        grids_to_remove = []
+        for grid in all_grids:
+            grid.mark_off(num)
+            if grid.winner():
+                if len(all_grids) > 1: grids_to_remove.append(grid)
+                else: return grid.sum_of_unmarked() * int(num)
+        all_grids = [grid for grid in all_grids if grid not in grids_to_remove]
+    return "Aw shit."
+
+
 if __name__ == '__main__':
     f = open("input.txt")
 
@@ -62,3 +74,4 @@ if __name__ == '__main__':
     f.close()
 
     print(part_one(all_grids, bingo_calls))
+    print(part_two(all_grids, bingo_calls))
