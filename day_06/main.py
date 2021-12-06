@@ -1,6 +1,3 @@
-f = open("input.txt")
-
-
 def run_sim(fish_values, num_days):
     counts = {}
     for x in range(-1, 9, 1):
@@ -17,6 +14,8 @@ def run_sim(fish_values, num_days):
 
     return sum([v for v in counts.values()])
 
+
+f = open("input.txt")
 
 starting_values = [int(v) for v in f.readline().strip().split(",")]
 
