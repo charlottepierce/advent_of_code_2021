@@ -26,31 +26,30 @@ def part_one(start_cave):
     return explore_part_one(start_cave, [], [])
 
 
-def explore_part_two(current_node, path, seen, used_double_visit=False):
+def explore_part_two(current_node, path, seen, known_paths, used_double_visit=False):
     path.append(current_node)
     if current_node.name == "start":
         seen.append(current_node)
     elif current_node.name == "end":
-        path_str = ",".join([n.name for n in path])
-        path_str += "||"
-        return path_str
+        if path not in known_paths:
+            known_paths.append(path)
+        return known_paths
     elif current_node.name.islower():
         seen.append(current_node)
 
-    path_str = ""
     for connected in current_node.connected_caves:
         if connected in seen:
             continue
-        path_str += explore_part_two(connected, path[:], seen[:], used_double_visit)
+        known_paths = explore_part_two(connected, path[:], seen[:], known_paths, used_double_visit)
         if current_node.name.islower() and current_node.name != "start" and current_node.name != "end" and not used_double_visit:
-            path_str += explore_part_two(connected, path[:], [c for c in seen if c != current_node], used_double_visit=True)
+            known_paths = explore_part_two(connected, path[:], [c for c in seen if c != current_node], known_paths, used_double_visit=True)
 
-    return path_str
+    return known_paths
 
 
 def part_two(start_cave):
-    all_path_strings = [s for s in explore_part_two(start_cave, [], [], []).split("||") if len(s) > 0]
-    return len(set(all_path_strings))
+    known_paths = explore_part_two(start_cave, [], [], [])
+    return len(known_paths)
 
 
 if __name__ == "__main__":
