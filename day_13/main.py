@@ -27,9 +27,21 @@ def dots_visible(grid):
     return count
 
 
+def print_grid(grid):
+    for row in grid:
+        print("".join(row))
+    print()
+
+
 def part_one(grid, fold_instructions):
     grid = execute_fold(grid, fold_instructions[0])
     return dots_visible(grid)
+
+
+def part_two(grid, fold_instructions):
+    for fold_instruction in fold_instructions:
+        grid = execute_fold(grid, fold_instruction)
+    print_grid(grid)
 
 
 if __name__ == "__main__":
@@ -57,3 +69,4 @@ if __name__ == "__main__":
         grid[col][row] = "#"
 
     print(part_one(grid, fold_instructions))
+    part_two(grid, fold_instructions)
