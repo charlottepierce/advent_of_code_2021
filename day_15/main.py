@@ -1,3 +1,26 @@
+def expand_map(risk_map):
+    horizontally_expanded_map = []
+
+    # expand horizontally
+    for row in risk_map:
+        new_row = []
+        for i in range(5):
+            new_row.extend([v + i for v in row])
+
+        new_row = [r if r < 10 else r - 9 for r in new_row]
+        horizontally_expanded_map.append(new_row)
+
+    # expand vertically
+    expanded_map = []
+    for i in range(5):
+        for row in horizontally_expanded_map:
+            new_row = [x + i for x in row]
+            new_row = [r if r < 10 else r - 9 for r in new_row]
+            expanded_map.append(new_row)
+
+    return expanded_map
+
+
 def manhattan_heuristic(a_node, goal_row, goal_col):
     return abs(goal_row - a_node[0]) + abs(goal_col - a_node[1])
 
@@ -63,6 +86,11 @@ def part_one(risk_map):
     return sum(risks)
 
 
+def part_two(risk_map):
+    risk_map = expand_map(risk_map)
+    return part_one(risk_map)
+
+
 if __name__ == "__main__":
     f = open("input.txt")
     risk_map = []
@@ -71,3 +99,4 @@ if __name__ == "__main__":
     f.close()
 
     print(part_one(risk_map))
+    print(part_two(risk_map))
