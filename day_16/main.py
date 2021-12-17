@@ -1,0 +1,122 @@
+class Packet(object):
+    def __init__(self, packet_version):
+        self.packet_version = packet_version
+
+
+class LiteralValuePacket(Packet):
+    def __init__(self, packet_version, value):
+        super().__init__(packet_version)
+        self.value = value
+
+    def __str__(self, depth):
+        return "-" * depth + " literal value = " + str(self.value)
+
+
+class OperatorPacket(Packet):
+    def __init__(self, packet_version):
+        super().__init__(packet_version)
+        self.subpackets = []
+
+    def __str__(self, depth):
+        s = "-" * depth + "Operator:\n"
+        for sp in self.subpackets:
+            s += sp.__str__(depth + 1) + "\n"
+        return s
+
+
+def read_literal_value(binary_input, packet_version):
+    total_number_bits_read = 0
+    last_digit = False
+    number_in_binary = ""
+    while not last_digit:
+        if binary_input[0] == "0":
+            last_digit = True
+        number_in_binary += binary_input[1:5]
+        binary_input = binary_input[5:]
+        total_number_bits_read += 5
+    # while (total_number_bits_read) % 4 != 0: # - 6 for the two headers read before the literal value (3 for the packet version + 3 for the packet type id)
+    #     binary_input = binary_input[1:]
+    #     total_number_bits_read += 1
+
+    packet_read = LiteralValuePacket(packet_version, int(number_in_binary, base=2))
+
+    return binary_input, total_number_bits_read, packet_read
+
+
+def read_operator_value(binary_input, packet_version):
+    packet_read = OperatorPacket(packet_version)
+
+    length_type_id = binary_input[0]
+    binary_input = binary_input[1:]
+    total_number_bits_read = 1
+
+    if length_type_id == "0":
+        total_length_of_subpackets = int(binary_input[0:15], base=2)
+        binary_input = binary_input[15:]
+        total_number_bits_read += 15
+        subpacket_bits_read = 0
+        while subpacket_bits_read < total_length_of_subpackets:
+            binary_input, bits_read_this_packet, subpacket = read_packet(binary_input)
+            subpacket_bits_read += bits_read_this_packet
+            packet_read.subpackets.append(subpacket)
+        total_number_bits_read += subpacket_bits_read
+    else:
+        number_of_subpackets = int(binary_input[0:11], base=2)
+        binary_input = binary_input[11:]
+        total_number_bits_read += 11
+        for x in range(number_of_subpackets):
+            binary_input, num_bits_read, subpacket = read_packet(binary_input)
+            total_number_bits_read += num_bits_read
+            packet_read.subpackets.append(subpacket)
+
+    return binary_input, total_number_bits_read, packet_read
+
+
+def read_packet(binary_input):
+    packet_version = binary_input[0:3]
+    packet_version = int(packet_version, base=2)
+    binary_input = binary_input[3:]
+
+    packet_type_id = binary_input[0:3]
+    binary_input = binary_input[3:]
+
+    total_number_bits_read = 6
+
+    if int(packet_type_id, base=2) == 4:
+        binary_input, number_bits_read, packet_read = read_literal_value(binary_input, packet_version)
+        total_number_bits_read += number_bits_read
+    else:
+        binary_input, number_bits_read, packet_read = read_operator_value(binary_input, packet_version)
+        total_number_bits_read += number_bits_read
+
+    return binary_input, total_number_bits_read, packet_read
+
+
+def part_one(binary_input):
+    binary_input, total_number_bits_read, packet_read = read_packet(binary_input)
+    print("Packet read:")
+    print(packet_read.__str__(0))
+
+    version_num_total = 0
+    packets = [packet_read]
+    while len(packets) > 0:
+        p = packets.pop()
+        version_num_total += p.packet_version
+        if isinstance(p, OperatorPacket):
+            packets.extend(p.subpackets)
+
+    return version_num_total
+
+
+if __name__ == "__main__":
+    f = open("input.txt")
+    hex_code = f.readline().strip()
+    f.close()
+
+    binary_input = ""
+    for c in hex_code:
+        int_value = int(c, base=16)
+        binary_input += bin(int_value)[2:].zfill(4)
+
+    print(binary_input)
+    print(part_one(binary_input))
