@@ -20,11 +20,11 @@ def step(probe_x, probe_y, velocity_x, velocity_y):
     return new_probe_x, new_probe_y, new_velocity_x, new_velocity_y
 
 
-def part_one(target_x_min, target_x_max, target_y_min, target_y_max):
+def find_velocities_and_heights(target_x_min, target_x_max, target_y_min, target_y_max):
     heights = {}
 
-    for x in range(0, target_x_max):
-        for y in range(0, abs(target_y_max - target_y_min) * 10):
+    for x in range(0, target_x_max + 1):
+        for y in range(target_y_min, abs(target_y_max - target_y_min) * 10):
             probe_x = 0
             probe_y = 0
             init_velocity_x = x
@@ -32,7 +32,8 @@ def part_one(target_x_min, target_x_max, target_y_min, target_y_max):
             velocity_x = init_velocity_x
             velocity_y = init_velocity_y
             height = 0
-            while not position_past_target(probe_x, probe_y, target_x_max, target_y_min) and not position_in_target(probe_x, probe_y, target_x_min, target_x_max, target_y_min, target_y_max):
+            while not position_past_target(probe_x, probe_y, target_x_max, target_y_min) and not position_in_target(
+                    probe_x, probe_y, target_x_min, target_x_max, target_y_min, target_y_max):
                 probe_x, probe_y, velocity_x, velocity_y = step(probe_x, probe_y, velocity_x, velocity_y)
                 if probe_y > height:
                     height = probe_y
@@ -40,6 +41,16 @@ def part_one(target_x_min, target_x_max, target_y_min, target_y_max):
             if position_in_target(probe_x, probe_y, target_x_min, target_x_max, target_y_min, target_y_max):
                 heights[(init_velocity_x, init_velocity_y)] = height
 
+    return heights
+
+
+def part_two(target_x_min, target_x_max, target_y_min, target_y_max):
+    heights = find_velocities_and_heights(target_x_min, target_x_max, target_y_min, target_y_max)
+    return len(heights.keys())
+
+
+def part_one(target_x_min, target_x_max, target_y_min, target_y_max):
+    heights = find_velocities_and_heights(target_x_min, target_x_max, target_y_min, target_y_max)
     heights = sorted(heights.items(), key=lambda x: x[1], reverse=True)
     return heights[0][1]
 
@@ -57,3 +68,4 @@ if __name__ == "__main__":
     target_y_min, target_y_max = [int(v) for v in y_lims.strip()[2:].split("..")]
 
     print(part_one(target_x_min, target_x_max, target_y_min, target_y_max))
+    print(part_two(target_x_min, target_x_max, target_y_min, target_y_max))
