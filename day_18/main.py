@@ -1,7 +1,6 @@
 import math
 import re
 
-
 class Node(object):
     def __init__(self):
         self.left_child = None
@@ -106,10 +105,13 @@ def explode(snailfish_num):
     open_brackets = 0
     found = ""
     start_recording = False
-    for c in num_str:
+    found_index_start = None
+    for i in range(len(num_str)):
+        c = num_str[i]
         if c == "[":
             open_brackets += 1
             found = ""
+            found_index_start = None
         elif c == "]":
             open_brackets -= 1
             start_recording = False
@@ -120,16 +122,17 @@ def explode(snailfish_num):
             start_recording = True
 
         if open_brackets > 4 and start_recording and c != "[":
+            found_index_start = i
             found += c
 
     if len(found) == 0:
         return None
 
+    found_index_start -= len(found)
     found += "]"
     found = "[" + found
 
     # process replacements
-    found_index_start = num_str.index(found)
     found_index_end = found_index_start + len(found)
     before = num_str[0:found_index_start]
     after = num_str[found_index_end:]
@@ -174,7 +177,9 @@ def explode(snailfish_num):
 
 def reduce(snailfish_num):
     done = False
+    step = 0
     while not done:
+        step += 1
         new_num = explode(snailfish_num)
         if new_num is None:
             new_num = split(snailfish_num)
@@ -186,6 +191,28 @@ def reduce(snailfish_num):
             snailfish_num = new_num
 
     return snailfish_num
+
+
+def part_two(snail_numbers):
+    largest = None
+
+    for i in range(0, len(snail_numbers)):
+        for x in range(0, len(snail_numbers)):
+            print(i, ",", x)
+            num_1 = snail_numbers[i]
+            num_2 = snail_numbers[x]
+
+            result = add(num_1, num_2)
+            result = reduce(result)
+            if largest is None or result.magnitude() > largest:
+                largest = result.magnitude()
+
+            result = add(num_2, num_1)
+            result = reduce(result)
+            if largest is None or result.magnitude() > largest:
+                largest = result.magnitude()
+
+    return largest
 
 
 def part_one(snail_numbers):
@@ -207,3 +234,4 @@ if __name__ == "__main__":
         snail_numbers.append(parse(text))
 
     print(part_one(snail_numbers).magnitude())
+    print(part_two(snail_numbers))
