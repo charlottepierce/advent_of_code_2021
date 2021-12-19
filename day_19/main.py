@@ -26,7 +26,7 @@ class Transform(object):
         self.facing = facing
 
 
-def part_one(scanners):
+def solve(scanners, scanner_positions=[[0, 0, 0]]):
     coord_positions = [
         [0, 1, 2],
         [0, 2, 1],
@@ -78,13 +78,14 @@ def part_one(scanners):
                             resulting_s2_beacon_positions = [(np.array([position[0], position[1], position[2]]) + test_dist).tolist() for position in other_beacon_positions]
                             overlap = len([v for v in resulting_s2_beacon_positions if v in test_beacon_positions])
                             if overlap >= 12:
-                                print("--- found transfer from scanner", scanners[ii].number, "to scanner", scanners[i].number)
+                                print("--- found transform from scanner", scanners[ii].number, "to scanner", scanners[i].number)
                                 transforms.append(Transform(other_scanner, test_scanner, test_dist, coord_position, facing))
 
     # apply transforms to get every scanner to the same coordinate system
     transformed_to_origin = []
     for i in range(1, len(scanners)):
         scanner_to_transform = scanners[i]
+        scanner_position = [0, 0, 0]
         print("Transforming scanner", scanner_to_transform.number)
         transformed_to = None
         while transformed_to != scanners[0]:
@@ -97,10 +98,12 @@ def part_one(scanners):
             transform_to_apply = transform_to_apply[0]
             print("transforming from", transform_to_apply.from_scanner.number, "to", transform_to_apply.to_scanner.number)
             new_beacon_positions = apply_transform(scanner_to_transform, transform_to_apply)
+            scanner_position = transform_vector(scanner_position, transform_to_apply)
             scanner_to_transform.beacons = [Beacon(new_b[0], new_b[1], new_b[2]) for new_b in new_beacon_positions]
             transformed_to = transform_to_apply.to_scanner
             if transformed_to == scanners[0]:
                 transformed_to_origin.append(scanner_to_transform)
+                scanner_positions.append(scanner_position)
 
     for s in transformed_to_origin:
         scanners[0].beacons.extend(s.beacons)
@@ -108,8 +111,7 @@ def part_one(scanners):
 
     print("!!! Got", len(scanners), "scanner(s) left now")
     if len(scanners) > 1:
-        part_one(scanners)
-
+        scanners, scanner_positions = solve(scanners, scanner_positions)
     unique_beacon_positions = []
     for scanner in scanners:
         for b in scanner.beacons:
@@ -117,7 +119,27 @@ def part_one(scanners):
             if p not in unique_beacon_positions:
                 unique_beacon_positions.append(p)
 
-    print(len(unique_beacon_positions))
+    print(len(unique_beacon_positions), "unique beacons") # part 1 answer
+
+    print("Scanner positions")
+    print(scanner_positions)
+
+    distances = []
+    for p1 in scanner_positions:
+        for p2 in scanner_positions:
+            dist = abs(p1[0] - p2[0]) + abs(p1[1] - p2[1]) + abs(p1[2] - p2[2])
+            distances.append(dist)
+
+    print("The largest distance between two scanners is:", max(distances)) # part 2 answer
+
+    return scanners, scanner_positions
+
+
+def transform_vector(original_vec, transform):
+    vec = [original_vec[position] for position in transform.coord_position]
+    vec = [vec[i] * transform.facing[i] for i in range(len(vec))]
+    vec = (np.array(vec) + np.array(transform.dist)).tolist()
+    return vec
 
 
 def apply_transform(scanner, transform):
@@ -125,10 +147,7 @@ def apply_transform(scanner, transform):
 
     for b in scanner.beacons:
         original_vec = [b.x, b.y, b.z]
-        vec = [original_vec[position] for position in transform.coord_position]
-        vec = [vec[i] * transform.facing[i] for i in range(len(vec))]
-        vec = (np.array(vec) + np.array(transform.dist)).tolist()
-        transformed_beacon_positions.append(vec)
+        transformed_beacon_positions.append(transform_vector(original_vec, transform))
 
     return transformed_beacon_positions
 
@@ -154,4 +173,4 @@ if __name__ == "__main__":
 
     scanners[0].coords = (0, 0, 0) # first scanner is at the origin
 
-    part_one(scanners)
+    solve(scanners)
