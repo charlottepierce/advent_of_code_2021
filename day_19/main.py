@@ -78,20 +78,37 @@ def part_one(scanners):
                             resulting_s2_beacon_positions = [(np.array([position[0], position[1], position[2]]) + test_dist).tolist() for position in other_beacon_positions]
                             overlap = len([v for v in resulting_s2_beacon_positions if v in test_beacon_positions])
                             if overlap >= 12:
-                                print("Known transfer from scanner", scanners[ii].number, "to scanner", scanners[i].number)
+                                print("--- found transfer from scanner", scanners[ii].number, "to scanner", scanners[i].number)
                                 transforms.append(Transform(other_scanner, test_scanner, test_dist, coord_position, facing))
 
     # apply transforms to get every scanner to the same coordinate system
+    transformed_to_origin = []
     for i in range(1, len(scanners)):
         scanner_to_transform = scanners[i]
         print("Transforming scanner", scanner_to_transform.number)
         transformed_to = None
         while transformed_to != scanners[0]:
-            print("applying transform")
-            transform_to_apply = [t for t in transforms if t.from_scanner == scanner_to_transform][0]
+            transform_to_apply = [t for t in transforms if t.from_scanner == scanner_to_transform]
+            if transformed_to is not None:
+                transform_to_apply = [t for t in transforms if t.from_scanner == transformed_to]
+            if len(transform_to_apply) == 0:
+                print("no appropriate transform found")
+                break
+            transform_to_apply = transform_to_apply[0]
+            print("transforming from", transform_to_apply.from_scanner.number, "to", transform_to_apply.to_scanner.number)
             new_beacon_positions = apply_transform(scanner_to_transform, transform_to_apply)
-            scanner_to_transform.beacons = [Beacon(b.x, b.y, b.z) for new_b in new_beacon_positions]
+            scanner_to_transform.beacons = [Beacon(new_b[0], new_b[1], new_b[2]) for new_b in new_beacon_positions]
             transformed_to = transform_to_apply.to_scanner
+            if transformed_to == scanners[0]:
+                transformed_to_origin.append(scanner_to_transform)
+
+    for s in transformed_to_origin:
+        scanners[0].beacons.extend(s.beacons)
+        scanners.remove(s)
+
+    print("!!! Got", len(scanners), "scanner(s) left now")
+    if len(scanners) > 1:
+        part_one(scanners)
 
     unique_beacon_positions = []
     for scanner in scanners:
@@ -99,24 +116,6 @@ def part_one(scanners):
             p = [b.x, b.y, b.z]
             if p not in unique_beacon_positions:
                 unique_beacon_positions.append(p)
-
-    for p in unique_beacon_positions:
-        print(p)
-
-    # 1 -> 0
-    # 3 -> 1
-    # 4 -> 1
-    # 4 -> 2
-
-    # scanner 1:
-    #   use 1 -> 0
-    # scanner 2: ??
-    # scanner 3:
-    #  use 3 -> 1
-    #  use 1 -> 0
-    # scanner 4:
-    #  use 4 -> 1
-    #  use 1 -> 0
 
     print(len(unique_beacon_positions))
 
@@ -142,13 +141,13 @@ if __name__ == "__main__":
     scanner_number = 0
     for line in f:
         if "---" in line:
-            s = Scanner()
+            s = Scanner(scanner_number)
             next_line = f.readline().strip()
             while len(next_line) > 0:
                 x, y, z = [int(v) for v in next_line.split(",")]
                 s.beacons.append(Beacon(x, y, z))
                 next_line = f.readline().strip()
-            scanners.append(s, scanner_number)
+            scanners.append(s)
             scanner_number += 1
 
     f.close()
