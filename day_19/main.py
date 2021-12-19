@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.spatial.transform import Rotation as R
+
 
 class Beacon(object):
     def __init__(self, x, y, z):
@@ -8,69 +8,130 @@ class Beacon(object):
         self.z = z
 
     def __str__(self):
-        return "{" + str(self.x) + ", " + str(self.y) + ", " + str(self.z) + "}"
+        return "[" + str(self.x) + ", " + str(self.y) + ", " + str(self.z) + "]"
 
 
 class Scanner(object):
-    def __init__(self):
+    def __init__(self, number):
         self.beacons = []
-        self.coords = None
+        self.number = number
 
 
-# def part_one(scanners):
-#     scanner_0_beacons = [[b.x, b.y, b.z] for b in scanners[0].beacons]
-#
-#     coord_positions = [
-#         [0, 1, 2],
-#         [0, 2, 1],
-#         [1, 0, 2],
-#         [1, 2, 0],
-#         [2, 1, 0],
-#         [2, 0, 1]
-#     ]
-#     facings = [
-#         [1, 1, 1],
-#         [1, 1, -1],
-#         [1, -1, 1],
-#         [1, -1, -1],
-#         [-1, 1, 1],
-#         [-1, 1, -1],
-#         [-1, -1, 1],
-#         [-1, -1, -1]
-#     ]
-#
-#     for i in range(1, len(scanners)):
-#         print("Scanner", i)
-#         for coord_position in coord_positions:
-#             print("- Position", coord_position)
-#             for facing in facings:
-#                 print("- Facing", facing)
-#                 set_of_beacon_positions = []
-#                 for b in scanners[i].beacons:
-#                     original_vec = [b.x, b.y, b.z]
-#                     print("- Original", original_vec)
-#                     vec = [original_vec[position] for position in coord_position]
-#                     vec = [vec[i] * facing[i] for i in range(len(vec))]
-#                     set_of_beacon_positions.append(vec)
-
-def manhattan(b1, b2):
-    return abs(b1.x - b2.x) + abs(b1.y - b2.y) + abs(b1.z - b2.z)
+class Transform(object):
+    def __init__(self, from_scanner, to_scanner, dist, coord_position, facing):
+        self.from_scanner = from_scanner
+        self.to_scanner = to_scanner
+        self.dist = dist
+        self.coord_position = coord_position
+        self.facing = facing
 
 
 def part_one(scanners):
-    s0_distances = {}
-    for b in scanners[0].beacons:
-        s0_distances[b] = [manhattan(b, b2) for b2 in scanners[0].beacons]
+    coord_positions = [
+        [0, 1, 2],
+        [0, 2, 1],
+        [1, 0, 2],
+        [1, 2, 0],
+        [2, 1, 0],
+        [2, 0, 1]
+    ]
+    facings = [
+        [1, 1, 1],
+        [1, 1, -1],
+        [1, -1, 1],
+        [1, -1, -1],
+        [-1, 1, 1],
+        [-1, 1, -1],
+        [-1, -1, 1],
+        [-1, -1, -1]
+    ]
 
-    s1_distances = {}
-    for b in scanners[1].beacons:
-        s1_distances[b] = [manhattan(b, b2) for b2 in scanners[1].beacons]
+    transforms = []
 
-    for s0 in s0_distances.keys():
-        for s1 in s1_distances.keys():
-            overlap = list(set(s0_distances[s0]) & set(s1_distances[s1]))
-            if len(overlap) >= 12:
-                print("WHAT")
+    for i in range(0, len(scanners)):
+        test_scanner = scanners[i]
+        test_beacon_positions = [[b.x, b.y, b.z] for b in test_scanner.beacons]
+        for ii in range(i, len(scanners)):
+            if i == ii:
+                continue
+            print("Comparing scanner", scanners[i].number, "with", scanners[ii].number)
+
+            other_scanner = scanners[ii]
+            for coord_position in coord_positions:
+                # print("Using coord position", coord_position)
+                for facing in facings:
+                    # print("Using facing", facing)
+                    other_beacon_positions = []
+                    # transform beacon positions for other scanner to test position + facing
+                    for b in other_scanner.beacons:
+                        original_vec = [b.x, b.y, b.z]
+                        vec = [original_vec[position] for position in coord_position]
+                        vec = [vec[i] * facing[i] for i in range(len(vec))]
+                        other_beacon_positions.append(vec)
+
+                    # compare all points in scanner 0 with all transformed points from other scanner
+                    # calculate distance between two points, see if applying that distance vector to all points
+                    # from s2 makes 12 or more positions identical to those in s1
+                    for p1 in test_beacon_positions:
+                        for p2 in other_beacon_positions:
+                            test_dist = np.array(p1) - np.array(p2)
+                            resulting_s2_beacon_positions = [(np.array([position[0], position[1], position[2]]) + test_dist).tolist() for position in other_beacon_positions]
+                            overlap = len([v for v in resulting_s2_beacon_positions if v in test_beacon_positions])
+                            if overlap >= 12:
+                                print("Known transfer from scanner", scanners[ii].number, "to scanner", scanners[i].number)
+                                transforms.append(Transform(other_scanner, test_scanner, test_dist, coord_position, facing))
+
+    # apply transforms to get every scanner to the same coordinate system
+    for i in range(1, len(scanners)):
+        scanner_to_transform = scanners[i]
+        print("Transforming scanner", scanner_to_transform.number)
+        transformed_to = None
+        while transformed_to != scanners[0]:
+            print("applying transform")
+            transform_to_apply = [t for t in transforms if t.from_scanner == scanner_to_transform][0]
+            new_beacon_positions = apply_transform(scanner_to_transform, transform_to_apply)
+            scanner_to_transform.beacons = [Beacon(b.x, b.y, b.z) for new_b in new_beacon_positions]
+            transformed_to = transform_to_apply.to_scanner
+
+    unique_beacon_positions = []
+    for scanner in scanners:
+        for b in scanner.beacons:
+            p = [b.x, b.y, b.z]
+            if p not in unique_beacon_positions:
+                unique_beacon_positions.append(p)
+
+    for p in unique_beacon_positions:
+        print(p)
+
+    # 1 -> 0
+    # 3 -> 1
+    # 4 -> 1
+    # 4 -> 2
+
+    # scanner 1:
+    #   use 1 -> 0
+    # scanner 2: ??
+    # scanner 3:
+    #  use 3 -> 1
+    #  use 1 -> 0
+    # scanner 4:
+    #  use 4 -> 1
+    #  use 1 -> 0
+
+    print(len(unique_beacon_positions))
+
+
+def apply_transform(scanner, transform):
+    transformed_beacon_positions = []
+
+    for b in scanner.beacons:
+        original_vec = [b.x, b.y, b.z]
+        vec = [original_vec[position] for position in transform.coord_position]
+        vec = [vec[i] * transform.facing[i] for i in range(len(vec))]
+        vec = (np.array(vec) + np.array(transform.dist)).tolist()
+        transformed_beacon_positions.append(vec)
+
+    return transformed_beacon_positions
 
 
 if __name__ == "__main__":
@@ -78,6 +139,7 @@ if __name__ == "__main__":
 
     scanners = []
 
+    scanner_number = 0
     for line in f:
         if "---" in line:
             s = Scanner()
@@ -86,7 +148,8 @@ if __name__ == "__main__":
                 x, y, z = [int(v) for v in next_line.split(",")]
                 s.beacons.append(Beacon(x, y, z))
                 next_line = f.readline().strip()
-            scanners.append(s)
+            scanners.append(s, scanner_number)
+            scanner_number += 1
 
     f.close()
 
