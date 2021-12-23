@@ -19,8 +19,8 @@ class Instruction(object):
 
 
 class Cube(object):
-    def __init__(self, xmin, xmax, ymin, ymax, zmin, zmax):
-        self.dead = False
+    def __init__(self, xmin, xmax, ymin, ymax, zmin, zmax, positive=True):
+        self.positive = positive
         self.xmin = xmin
         self.xmax = xmax
         self.ymin = ymin
@@ -90,72 +90,37 @@ def overlap(cube_a, cube_b):
 
 
 def part_two(instructions):
-    cubes_on = []
+    boxes = []
 
+    inst_i = 0
+    max_inst_i = len(instructions)
     for instruction in instructions:
+        inst_i += 1
         instruction_cube = Cube(instruction.xmin, instruction.xmax, instruction.ymin, instruction.ymax, instruction.zmin, instruction.zmax)
 
-        # if an existing cube is completely inside the new cube, remove the existing cube
-        cubes_to_remove = []
+        to_add = []
         i = 0
-        maxi = len(cubes_on)
-        for c in cubes_on:
+        maxi = len(boxes)
+        for b in boxes:
             i += 1
-            if c.dead:
-                continue
-            print("- checking for enclosement of cube", i, "of", maxi, instruction)
-            if c.inside(instruction_cube):
-                c.dead = True
+            print("-- checking intersections with box", i, "of", maxi, "( instruction", inst_i, "of", max_inst_i, ") --", instruction)
+            intersecting_box = overlap(instruction_cube, b)
+            if intersecting_box.volume() > 0:
+                intersecting_box.positive = not b.positive
+                to_add.append(intersecting_box)
+        boxes.extend(to_add)
 
-        # if any existing cubes intersect the new cube, split the existing cube into multiple,
-        # which represent the original existing cube minus the intersection
-        cubes_to_remove = []
-        split_cubes = []
-        i = 0
-        maxi = len(cubes_on)
-        for c in cubes_on:
-            i += 1
-            if c.dead:
-                continue
-            print("- checking for splits needed in cube", i, "of", maxi, instruction)
-            intersect_cube = overlap(instruction_cube, c)
-            if intersect_cube.volume() > 0:
-                # an intersection was found - math from https://github.com/jkpr/advent-of-code-2021-kotlin/blob/master/src/day22/Day22.kt
-                if c.xmin < intersect_cube.xmin:
-                    split_cubes.append(Cube(c.xmin, intersect_cube.xmin - 1, c.ymin, c.ymax, c.zmin, c.zmax))
-                    c.dead = True
-                if c.xmax > intersect_cube.xmax:
-                    split_cubes.append(Cube(intersect_cube.xmax + 1, c.xmax, c.ymin, c.ymax, c.zmin, c.zmax))
-                    c.dead = True
-                if c.ymin < intersect_cube.ymin:
-                    split_cubes.append(Cube(intersect_cube.xmin, intersect_cube.xmax, c.ymin, intersect_cube.ymin - 1, c.zmin, c.zmax))
-                    c.dead = True
-                if c.ymax > intersect_cube.ymax:
-                    split_cubes.append(Cube(intersect_cube.xmin, intersect_cube.xmax, intersect_cube.ymax + 1, c.ymax, c.zmin, c.zmax))
-                    c.dead = True
-                if c.zmin < intersect_cube.zmin:
-                    split_cubes.append(Cube(intersect_cube.xmin, intersect_cube.xmax, intersect_cube.ymin, intersect_cube.ymax, c.zmin, intersect_cube.zmin - 1))
-                    c.dead = True
-                if c.zmax > intersect_cube.zmin:
-                    split_cubes.append(Cube(intersect_cube.xmin, intersect_cube.xmax, intersect_cube.ymin, intersect_cube.ymax, intersect_cube.zmax + 1, c.zmax))
-                    c.dead = True
-
-        print("Adding split cubes...")
-        cubes_on.extend(split_cubes)
-
-        # add the instruction cube to the list of on cubes, if the instruction is to turn it on
-        print("Adding instruction cube...")
         if instruction.on:
-            cubes_on.append(instruction_cube)
+            boxes.append(instruction_cube)
 
-    i = 0
-    maxi = len(cubes_on)
-    total_on = 0
-    for c in cubes_on:
-        i += 1
-        print("- calculating final volume ...", i, "of", maxi)
-        total_on += c.volume()
-    print(total_on)
+    sum = 0
+    for b in boxes:
+        if b.positive:
+            sum += b.volume()
+        else:
+            sum -= b.volume()
+
+    print(sum)
 
 
 if __name__ == "__main__":
