@@ -32,12 +32,6 @@ class Cube(object):
         x = abs(self.xmax - self.xmin) + 1
         y = abs(self.ymax - self.ymin) + 1
         z = abs(self.zmax - self.zmin) + 1
-        if self.xmin < 0 < self.xmax:
-            x += 1
-        if self.ymin < 0 < self.ymax:
-            y += 1
-        if self.zmin < 0 < self.zmax:
-            z += 1
 
         return x * y * z
 
@@ -92,18 +86,14 @@ def overlap(cube_a, cube_b):
 def part_two(instructions):
     boxes = []
 
-    inst_i = 0
-    max_inst_i = len(instructions)
     for instruction in instructions:
-        inst_i += 1
         instruction_cube = Cube(instruction.xmin, instruction.xmax, instruction.ymin, instruction.ymax, instruction.zmin, instruction.zmax)
 
         to_add = []
-        i = 0
-        maxi = len(boxes)
         for b in boxes:
-            i += 1
-            print("-- checking intersections with box", i, "of", maxi, "( instruction", inst_i, "of", max_inst_i, ") --", instruction)
+            if b.xmax < instruction.xmin or instruction.xmax < b.xmin or b.ymax < instruction.ymin or instruction.ymax < b.ymin or b.zmax < instruction.zmin or instruction.zmax < b.zmin:
+                continue  # no intersection -- skip
+
             intersecting_box = overlap(instruction_cube, b)
             if intersecting_box.volume() > 0:
                 intersecting_box.positive = not b.positive
