@@ -1,0 +1,1 @@
+print("Solved this puzzle by hand.")
